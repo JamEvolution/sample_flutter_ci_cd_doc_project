@@ -16,6 +16,8 @@ Profesyonel Flutter CI/CD pipeline'ı ve multi-environment deployment sistemine 
 - **Quality Assurance**: Automated testing ve code quality checks
 - **Professional Documentation**: Kapsamlı dokümantasyon sistemi
 
+> **Test Durumu**: Bu proje kapsamında tüm CI/CD pipeline'ları, build süreçleri ve deployment işlemleri Android platform üzerinde test edilmiş ve doğrulanmıştır. iOS build pipeline'ı teorik olarak dokümante edilmiştir ancak fiziksel iOS cihaz ve Apple Developer hesabı gerektirdiği için test edilmemiştir.
+
 ## Hızlı Başlangıç
 
 ### Gereksinimler
