@@ -1,0 +1,15 @@
+# Appfile.local Template (Android)
+# Bu dosyayı kopyalayıp Appfile.local olarak kaydedin ve kendi değerlerinizi girin
+# IMPORTANT: Appfile.local .gitignore'da olduğu için commit edilmeyecek
+
+# Firebase App IDs - Kendi Firebase projelerinizin App ID'lerini girin
+ENV["DEV_FIREBASE_APP_ID"] = "YOUR_DEV_FIREBASE_APP_ID"
+ENV["STAGING_FIREBASE_APP_ID"] = "YOUR_STAGING_FIREBASE_APP_ID"  
+ENV["PROD_FIREBASE_APP_ID"] = "YOUR_PROD_FIREBASE_APP_ID"
+ENV['FIREBASE_TESTERS'] = "your-email@example.com,team@example.com"
+
+# Firebase CLI Token (isteğe bağlı, environment variable olarak da set edilebilir)
+# ENV['FIREBASE_TOKEN'] = "your_firebase_cli_token"
+
+# Google Play Store (gerekirse)
+# ENV['GOOGLE_PLAY_JSON_KEY'] = "path/to/your/play-store-key.json"

@@ -1,0 +1,334 @@
+default_platform(:android)
+
+platform :android do
+  desc "Dev APK build ve Firebase App Distribution"
+  lane :dev do
+    # Firebase konfigürasyonunu validate et
+    validate_firebase_config
+    
+    sh("fvm flutter build apk --flavor dev --target lib/main.dart")
+    begin
+      version = File.read("../../pubspec.yaml").match(/version:\s+([^\n]+)/)[1]
+      commit_message = `git log -1 --pretty=%B`.strip
+      release_notes = "Version: #{version}\nBranch: develop\nCommit: #{commit_message}"
+      
+      firebase_app_distribution(
+        app: ENV['DEV_FIREBASE_APP_ID'],
+        testers: ENV['FIREBASE_TESTERS'],
+        apk_path: "../build/app/outputs/flutter-apk/app-dev-release.apk",
+        release_notes: release_notes
+      )
+      # teams(
+      #   title:   "Firebase Dağıtımı Başarılı",
+      #   message: "v#{Time.now.strftime('%Y.%m.%d.%H%M')} sürümü App Distribution'a YÜKLENDİ!",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "Lane",     "value" => "dev"    }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+    rescue => e
+      # teams(
+      #   title:   "Firebase Dağıtımı Hatalı",
+      #   message: "Dev lane için dağıtım BAŞARISIZ! Hata: #{e.message}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "Lane",     "value" => "dev"    }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+      raise e
+    end
+  end
+
+  desc "Staging APK build ve Firebase App Distribution"
+  lane :staging do
+    # Firebase konfigürasyonunu validate et
+    validate_firebase_config
+    
+    sh("fvm flutter build apk --flavor staging --target lib/main.dart")
+    begin
+      version = File.read("../../pubspec.yaml").match(/version:\s+([^\n]+)/)[1]
+      commit_message = `git log -1 --pretty=%B`.strip
+      release_notes = "Version: #{version}\nBranch: staging\nCommit: #{commit_message}"
+      
+      firebase_app_distribution(
+        app: ENV['STAGING_FIREBASE_APP_ID'],
+        testers: ENV['FIREBASE_TESTERS'],
+        apk_path: "../build/app/outputs/flutter-apk/app-staging-release.apk",
+        release_notes: release_notes
+      )
+      # teams(
+      #   title:   "Firebase Dağıtımı Başarılı",
+      #   message: "v#{Time.now.strftime('%Y.%m.%d.%H%M')} sürümü App Distribution'a YÜKLENDİ!",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "Lane",     "value" => "staging"    }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+    rescue => e
+      # teams(
+      #   title:   "Firebase Dağıtımı Hatalı",
+      #   message: "Staging lane için dağıtım BAŞARISIZ! Hata: #{e.message}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "Lane",     "value" => "staging"    }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+      raise e
+    end
+  end
+
+  desc "Prod APK build ve Firebase App Distribution"
+  lane :prod do
+    # Firebase konfigürasyonunu validate et
+    validate_firebase_config
+    
+    sh("fvm flutter build apk --flavor prod --target lib/main.dart")
+    begin
+      version = File.read("../../pubspec.yaml").match(/version:\s+([^\n]+)/)[1]
+      commit_message = `git log -1 --pretty=%B`.strip
+      release_notes = "Version: #{version}\nBranch: main\nCommit: #{commit_message}"
+      
+      firebase_app_distribution(
+        app: ENV['PROD_FIREBASE_APP_ID'],
+        testers: ENV['FIREBASE_TESTERS'],
+        apk_path: "../build/app/outputs/flutter-apk/app-prod-release.apk",
+        release_notes: release_notes
+      )
+      # teams(
+      #   title:   "Firebase Dağıtımı Başarılı",
+      #   message: "v#{Time.now.strftime('%Y.%m.%d.%H%M')} sürümü App Distribution'a YÜKLENDİ!",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "Lane",     "value" => "prod"    }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+    rescue => e
+      # teams(
+      #   title:   "Firebase Dağıtımı Hatalı",
+      #   message: "Prod lane için dağıtım BAŞARISIZ! Hata: #{e.message}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "Lane",     "value" => "prod"    }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+      raise e
+    end
+  end
+
+  desc "Flutter testlerini çalıştır"
+  lane :test do
+    begin
+      sh("cd .. && fvm flutter test")
+      # teams(
+      #   title: "Test Sonucu Başarılı",
+      #   message: "Flutter testleri başarıyla tamamlandı!",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "Test" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+    rescue => e
+      # teams(
+      #   title: "Test Hatası",
+      #   message: "Flutter testlerinde hata: #{e.message}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "Test" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+      raise e
+    end
+  end
+
+  desc "Kod kalite kontrolü"
+  lane :lint do
+    begin
+      sh("cd .. && fvm flutter analyze")
+      sh("cd .. && fvm flutter format --set-exit-if-changed lib/")
+      # teams(
+      #   title: "Lint Kontrolü Başarılı",
+      #   message: "Kod kalite kontrolü başarıyla tamamlandı!",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "Lint" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+    rescue => e
+      # teams(
+      #   title: "Lint Hatası",
+      #   message: "Kod kalite kontrolünde hata: #{e.message}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "Lint" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+      raise e
+    end
+  end
+
+  desc "Proje temizleme ve yeniden yapılandırma"
+  lane :clean do
+    begin
+      sh("cd .. && fvm flutter clean")
+      sh("cd .. && fvm flutter pub get")
+      sh("cd .. && fvm flutter pub run build_runner build --delete-conflicting-outputs")
+      # teams(
+      #   title: "Temizleme Başarılı",
+      #   message: "Proje temizlendi ve yeniden yapılandırıldı!",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "Clean" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+    rescue => e
+      # teams(
+      #   title: "Temizleme Hatası",
+      #   message: "Proje temizleme işleminde hata: #{e.message}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "Clean" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+      raise e
+    end
+  end
+
+  desc "Version artırma"
+  lane :bump_version do |options|
+    begin
+      Dir.chdir("../..") do
+        # Mevcut versiyonu oku
+        current_version = File.read("pubspec.yaml").match(/version:\s+([^\n]+)/)[1]
+        version_parts = current_version.split("+")
+        semantic_version = version_parts[0] # örn: 1.0.0
+        build_number = version_parts[1].to_i # örn: 10
+        
+        # Build numarasını bir artır
+        new_build_number = build_number + 1
+        new_version = "#{semantic_version}+#{new_build_number}"
+        
+        sh("fvm flutter pub run build_runner build --delete-conflicting-outputs")
+        
+        # OS'a göre farklı sed komutu kullan
+        if OS.mac?
+          sh("sed -i '' 's/version: .*/version: #{new_version}/g' pubspec.yaml")
+        else
+          sh("sed -i 's/version: .*/version: #{new_version}/g' pubspec.yaml")
+        end
+        
+        UI.message("Version güncellendi: #{new_version}")
+      end
+      # teams(
+      #   title: "Versiyon Güncelleme Başarılı",
+      #   message: "Yeni versiyon: #{new_version}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "Version Bump" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+    rescue => e
+      # teams(
+      #   title: "Versiyon Güncelleme Hatası",
+      #   message: "Versiyon güncelleme işleminde hata: #{e.message}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "Version Bump" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+      raise e
+    end
+  end
+
+  desc "CI ortamını hazırla"
+  lane :prepare_ci do
+    begin
+      sh("cd .. && fvm install")
+      sh("cd .. && fvm flutter pub get")
+      sh("cd .. && fvm flutter pub run build_runner build --delete-conflicting-outputs")
+      # teams(
+      #   title: "CI Hazırlık Başarılı",
+      #   message: "CI ortamı hazırlandı!",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "CI Setup" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+    rescue => e
+      # teams(
+      #   title: "CI Hazırlık Hatası",
+      #   message: "CI ortamı hazırlama işleminde hata: #{e.message}",
+      #   facts: [
+      #     { "name" => "Platform", "value" => "Android" },
+      #     { "name" => "İşlem", "value" => "CI Setup" }
+      #   ],
+      #   teams_url: ENV["TEAMS_WEBHOOK_URL"]
+      # )
+      raise e
+    end
+  end
+
+  desc "CI ortamını validate et (GitLab CI/CD için)"
+  lane :validate_environment do
+    begin
+      UI.message("🔍 CI environment validation başlıyor...")
+      
+      # Flutter version check
+      flutter_version = sh("fvm flutter --version --machine 2>/dev/null || flutter --version --machine", log: false).strip
+      UI.success("✅ Flutter version: #{JSON.parse(flutter_version)['flutterVersion']}")
+      
+      # Android SDK check
+      android_home = ENV['ANDROID_HOME'] || ENV['ANDROID_SDK_ROOT']
+      if android_home.nil? || android_home.empty?
+        UI.user_error!("❌ ANDROID_HOME or ANDROID_SDK_ROOT environment variable not set")
+      end
+      UI.success("✅ Android SDK: #{android_home}")
+      
+      # Ruby and Bundler check
+      ruby_version = sh("ruby --version", log: false).strip
+      UI.success("✅ Ruby: #{ruby_version}")
+      
+      bundler_version = sh("bundle --version", log: false).strip
+      UI.success("✅ Bundler: #{bundler_version}")
+      
+      # Firebase CLI check (optional)
+      begin
+        firebase_version = sh("firebase --version", log: false).strip
+        UI.success("✅ Firebase CLI: #{firebase_version}")
+      rescue
+        UI.important("⚠️  Firebase CLI not found - manual setup may be required")
+      end
+      
+      # Environment variables check for CI
+      if ENV['CI']
+        required_vars = ['FIREBASE_CLI_TOKEN']
+        missing_vars = required_vars.select { |var| ENV[var].nil? || ENV[var].empty? }
+        
+        if missing_vars.any?
+          UI.user_error!("❌ Missing required environment variables: #{missing_vars.join(', ')}")
+        end
+        UI.success("✅ Required CI environment variables are set")
+      end
+      
+      UI.success("🎉 CI environment validation completed successfully!")
+      
+    rescue => e
+      UI.error("❌ Environment validation failed: #{e.message}")
+      raise e
+    end
+  end
+end

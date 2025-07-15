@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Configuration Template
+# Copy this file to config.sh and fill in your actual values
+# 
+# IMPORTANT: config.sh is in .gitignore - never commit actual credentials!
+
+# App Distribution Config
+# Her flavor için App ID ve tester group
+
+# Development Environment
+dev_androidAppId="YOUR_DEV_ANDROID_APP_ID"
+dev_iosAppId="YOUR_DEV_IOS_APP_ID"
+dev_testerGroup="your-dev-team"
+
+# Staging Environment
+staging_androidAppId="YOUR_STAGING_ANDROID_APP_ID"
+staging_iosAppId="YOUR_STAGING_IOS_APP_ID"
+staging_testerGroup="your-staging-team"
+
+# Production Environment
+prod_androidAppId="YOUR_PROD_ANDROID_APP_ID"
+prod_iosAppId="YOUR_PROD_IOS_APP_ID"
+prod_testerGroup="your-prod-team"
+
+# Firebase Configuration
+export FIREBASE_TOKEN="your_firebase_token_here"
+
+# Helper Functions
+setup_environment() {
+    echo "Setting up environment variables..."
+    
+    # Validate required variables
+    if [[ -z "$dev_androidAppId" || "$dev_androidAppId" == "YOUR_DEV_ANDROID_APP_ID" ]]; then
+        echo "Error: Please configure your Firebase App IDs in config.sh"
+        exit 1
+    fi
+    
+    echo "Environment setup complete!"
+}
+
+validate_config() {
+    echo "Validating configuration..."
+    
+    # Check if all required variables are set
+    required_vars=(
+        "dev_androidAppId"
+        "staging_androidAppId" 
+        "prod_androidAppId"
+        "FIREBASE_TOKEN"
+    )
+    
+    for var in "${required_vars[@]}"; do
+        if [[ -z "${!var}" || "${!var}" == "YOUR_"* ]]; then
+            echo "Error: $var is not configured"
+            return 1
+        fi
+    done
+    
+    echo "Configuration is valid!"
+}
+
+clean_builds() {
+    echo "Cleaning build artifacts..."
+    
+    flutter clean
+    cd android && ./gradlew clean && cd ..
+    
+    echo "Build cleanup complete!"
+}
+
+# Usage information
+show_usage() {
+    echo "Usage: source scripts/config.sh"
+    echo ""
+    echo "Available functions:"
+    echo "  setup_environment  - Setup environment variables"
+    echo "  validate_config    - Validate configuration"
+    echo "  clean_builds       - Clean build artifacts"
+    echo "  show_usage         - Show this help"
+}

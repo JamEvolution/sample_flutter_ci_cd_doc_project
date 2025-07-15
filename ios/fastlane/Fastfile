@@ -1,0 +1,43 @@
+# Fastfile (iOS)
+default_platform(:ios)
+
+platform :ios do
+  desc "Dev flavor için build ve Firebase App Distribution"
+  lane :dev do
+    dotenv('.env.dev')
+    increment_build_number(xcodeproj: "Runner.xcodeproj")
+    build_ios_app(
+      scheme: "dev",
+      export_method: "ad-hoc"
+    )
+    firebase_app_distribution(
+      app: ENV['FIREBASE_APP_ID'],
+      testers: ENV['FIREBASE_TESTERS']
+    )
+  end
+
+  desc "Staging flavor için build ve dağıtım"
+  lane :staging do
+    dotenv('.env.staging')
+    increment_build_number(xcodeproj: "Runner.xcodeproj")
+    build_ios_app(
+      scheme: "staging",
+      export_method: "ad-hoc"
+    )
+    firebase_app_distribution(
+      app: ENV['FIREBASE_APP_ID'],
+      testers: ENV['FIREBASE_TESTERS']
+    )
+  end
+
+  desc "Prod flavor için build ve market yükleme"
+  lane :prod do
+    dotenv('.env.prod')
+    increment_build_number(xcodeproj: "Runner.xcodeproj")
+    build_ios_app(
+      scheme: "prod",
+      export_method: "app-store"
+    )
+    upload_to_app_store
+  end
+end

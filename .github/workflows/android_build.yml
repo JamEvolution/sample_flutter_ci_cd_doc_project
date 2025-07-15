@@ -1,0 +1,120 @@
+name: Android Build & Distribution
+
+on:
+  push:
+    branches: [develop, staging, main]
+  pull_request:
+    branches: [develop, staging, main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  android-build:
+    name: Android Build & Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.0"
+          channel: "stable"
+          cache: true
+
+      - name: Install FVM
+        run: |
+          dart pub global activate fvm
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Install Firebase CLI
+        run: |
+          curl -sL https://firebase.tools | bash
+          firebase --version
+
+      - name: Install dependencies
+        run: |
+          flutter pub get
+          cd android && bundle install && cd ..
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Test ve Lint işlemleri
+      - name: Run Tests & Lint
+        # Test ve Lint işlemleri şimdilik devre dışı, gerektiğinde aktif edilecek
+        if: false # Bu satır sayesinde bu adım her zaman atlanacak
+        run: |
+          cd android
+          bundle exec fastlane android test
+          bundle exec fastlane android lint
+        continue-on-error: true # Hata durumunda bile pipeline devam edecek
+
+      # Dev Branch işlemleri
+      - name: Build & Deploy Dev
+        if: github.ref == 'refs/heads/develop'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_APP_ID: ${{ secrets.DEV_FIREBASE_APP_ID }}
+          FIREBASE_TESTERS: ${{ secrets.FIREBASE_TESTERS }}
+        run: |
+          cd android
+          bundle exec fastlane bump_version
+          export FIREBASE_TOKEN="${{ secrets.FIREBASE_TOKEN }}"
+          export DEV_FIREBASE_APP_ID="${{ secrets.DEV_FIREBASE_APP_ID }}"
+          export FIREBASE_TESTERS="${{ secrets.FIREBASE_TESTERS }}"
+          bundle exec fastlane android dev
+
+      # Staging Branch işlemleri
+      - name: Build & Deploy Staging
+        if: github.ref == 'refs/heads/staging'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_APP_ID: ${{ secrets.STAGING_FIREBASE_APP_ID }}
+          FIREBASE_TESTERS: ${{ secrets.FIREBASE_TESTERS }}
+        run: |
+          cd android
+          bundle exec fastlane bump_version
+          export FIREBASE_TOKEN="${{ secrets.FIREBASE_TOKEN }}"
+          export STAGING_FIREBASE_APP_ID="${{ secrets.STAGING_FIREBASE_APP_ID }}"
+          export FIREBASE_TESTERS="${{ secrets.FIREBASE_TESTERS }}"
+          bundle exec fastlane android staging
+
+      # Main Branch işlemleri
+      - name: Build & Deploy Production
+        if: github.ref == 'refs/heads/main'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_APP_ID: ${{ secrets.PROD_FIREBASE_APP_ID }}
+          FIREBASE_TESTERS: ${{ secrets.FIREBASE_TESTERS }}
+        run: |
+          cd android
+          bundle exec fastlane bump_version
+          export FIREBASE_TOKEN="${{ secrets.FIREBASE_TOKEN }}"
+          export PROD_FIREBASE_APP_ID="${{ secrets.PROD_FIREBASE_APP_ID }}"
+          export FIREBASE_TESTERS="${{ secrets.FIREBASE_TESTERS }}"
+          bundle exec fastlane android prod

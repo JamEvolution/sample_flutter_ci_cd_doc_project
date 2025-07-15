@@ -1,0 +1,32 @@
+# Appfile (Android)
+json_key_file("../service-account.json") # Firebase veya Play Store için gerekli ise
+package_name("com.example.sample_ci_cd_project")
+
+# Firebase App IDs for different environments
+# IMPORTANT: Bu değerleri environment variables olarak ayarlayın veya Appfile.local oluşturun
+# GitHub Actions için: Repository secrets'da tanımlayın
+# Local development için: Appfile.local dosyasında tanımlayın (bu dosya .gitignore'da)
+
+# Environment variables'dan oku, yoksa placeholder göster
+ENV["DEV_FIREBASE_APP_ID"] = ENV["DEV_FIREBASE_APP_ID"] || "YOUR_DEV_FIREBASE_APP_ID_HERE"
+ENV["STAGING_FIREBASE_APP_ID"] = ENV["STAGING_FIREBASE_APP_ID"] || "YOUR_STAGING_FIREBASE_APP_ID_HERE"  
+ENV["PROD_FIREBASE_APP_ID"] = ENV["PROD_FIREBASE_APP_ID"] || "YOUR_PROD_FIREBASE_APP_ID_HERE"
+ENV['FIREBASE_TESTERS'] = ENV['FIREBASE_TESTERS'] || "your-email@example.com"
+
+# Validation: Environment variables'ın set edilip edilmediğini kontrol et
+def validate_firebase_config
+  required_vars = ["DEV_FIREBASE_APP_ID", "STAGING_FIREBASE_APP_ID", "PROD_FIREBASE_APP_ID", "FIREBASE_TESTERS"]
+  
+  required_vars.each do |var|
+    if ENV[var].nil? || ENV[var].start_with?("YOUR_")
+      UI.error "❌ #{var} environment variable is not set or using placeholder value!"
+      UI.message "🔧 Please set your Firebase configuration:"
+      UI.message "   - For CI/CD: Add to GitHub Secrets"
+      UI.message "   - For local development: Create Appfile.local with your values"
+      UI.message "   - Or export environment variables in your shell"
+      exit(1)
+    end
+  end
+  
+  UI.success "✅ Firebase configuration validated successfully"
+end

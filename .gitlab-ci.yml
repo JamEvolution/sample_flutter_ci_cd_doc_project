@@ -1,0 +1,138 @@
+# GitLab CI/CD Pipeline for Flutter Android
+# This file demonstrates GitLab CI/CD integration alongside GitHub Actions
+# Choose the platform that best fits your DevOps infrastructure
+
+# Required tools on GitLab Runner:
+# - Flutter SDK (latest stable)
+# - Android SDK (API 33+)
+# - Ruby 3.2+ and Bundler (for Fastlane)
+# - Git
+# - Firebase CLI (for deployment)
+
+variables:
+  LANG: "en_US.UTF-8"
+  LC_ALL: "en_US.UTF-8"
+  FASTLANE_SKIP_UPDATE_CHECK: "true"
+  FASTLANE_HIDE_TIMESTAMP: "true"
+  FLUTTER_VERSION: "3.32.0"
+  ANDROID_COMPILE_SDK: "34"
+  ANDROID_TARGET_SDK: "34"
+
+# Android için ortak hazırlık adımları
+.prepare_environment: &prepare_environment
+  tags:
+    - flutter # GitLab Runner with Flutter support
+  image: cirrusci/flutter:3.32.0 # Use official Flutter image
+  before_script:
+    - echo "🔧 Setting up environment..."
+    - flutter --version
+    - flutter doctor -v
+    - echo "📦 Installing dependencies..."
+    - flutter pub get
+    - cd android
+    - bundle install --retry=3
+    - bundle env
+    - cd ..
+    - echo "✅ Environment ready"
+
+# CI ortamı hazırlama ve validasyon
+validate_environment:
+  stage: prepare
+  <<: *prepare_environment
+  script:
+    - echo "🔍 Validating CI environment..."
+    - pwd
+    - ls -la
+    - echo "🏗️ Checking Android environment..."
+    - cd android
+    - bundle exec fastlane validate_environment
+    - echo "✅ Environment validation complete"
+  only:
+    - develop
+    - staging
+    - main
+
+# Versiyon güncelleme işlemi
+bump_version:
+  stage: prepare
+  <<: *prepare_environment
+  script:
+    - echo "📈 Updating version..."
+    - cd android
+    - bundle exec fastlane bump_version version:"${CI_COMMIT_TAG:-$(date +%Y.%m.%d.%H%M)}"
+    - echo "✅ Version updated successfully"
+  only:
+    - develop
+    - staging
+    - main
+
+# Dev ortamı build ve Firebase App Distribution
+build_dev:
+  stage: build
+  <<: *prepare_environment
+  script:
+    - echo "🚀 Building development version..."
+    - cd android
+    - bundle exec fastlane dev
+    - echo "✅ Development build complete and distributed"
+  only:
+    - develop
+  when: on_success
+
+# Staging ortamı build ve Firebase App Distribution
+build_staging:
+  stage: build
+  <<: *prepare_environment
+  script:
+    - echo "🎯 Building staging version..."
+    - cd android
+    - bundle exec fastlane staging
+    - echo "✅ Staging build complete and distributed"
+  only:
+    - staging
+  when: on_success
+
+# Production ortamı build ve Firebase App Distribution
+build_prod:
+  stage: build
+  <<: *prepare_environment
+  script:
+    - echo "🏆 Building production version..."
+    - cd android
+    - bundle exec fastlane prod
+    - echo "✅ Production build complete and distributed"
+  only:
+    - main
+  when: manual # Production build requires manual approval
+
+# GitLab CI pipeline aşamaları
+stages:
+  - prepare # Environment validation ve versiyon güncelleme
+  - build # APK build ve Firebase App Distribution
+
+# Cache optimization for faster builds
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .pub-cache/
+    - build/
+    - .dart_tool/
+    - android/.gradle/
+    - android/app/build/
+    - android/fastlane/report.xml
+    - ~/.gradle/caches/
+    - ~/.android/cache/
+# Environment variables that should be set in GitLab CI/CD settings:
+# FIREBASE_CLI_TOKEN - Firebase CLI token for App Distribution
+# FIREBASE_APP_ID_DEV - Development Firebase App ID
+# FIREBASE_APP_ID_STAGING - Staging Firebase App ID
+# FIREBASE_APP_ID_PROD - Production Firebase App ID
+# ANDROID_KEYSTORE_BASE64 - Base64 encoded Android keystore
+# ANDROID_KEYSTORE_PASSWORD - Keystore password
+# ANDROID_KEY_ALIAS - Key alias
+# ANDROID_KEY_PASSWORD - Key password
+
+# Note: For comprehensive CI/CD comparison, see:
+# - GitHub Actions: .github/workflows/android_build.yml
+# - Documentation: docs/CI_CD_COMPARISON.md
+# - iOS pipeline: Consider separate .gitlab-ci-ios.yml for iOS builds

@@ -1,0 +1,23 @@
+ide: "vscode"
+flavors:
+  dev:
+    app:
+      name: "Dev-Sample-App"
+    android:
+      applicationId: "com.example.sample.dev"
+    ios:
+      bundleId: "com.example.sample.dev"
+  prod:
+    app:
+      name: "Prod-Sample-App"
+    android:
+      applicationId: "com.example.sample.prod"
+    ios:
+      bundleId: "com.example.sample.prod"
+  staging:
+    app:
+      name: "Staging-Sample-App"
+    android:
+      applicationId: "com.example.sample.staging"
+    ios:
+      bundleId: "com.example.sample.staging"
